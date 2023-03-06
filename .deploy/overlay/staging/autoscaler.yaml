@@ -1,0 +1,76 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rabbit-pod-autoscaler
+rules:
+  - apiGroups: ["*"]
+    resources: ["deployments", "deployments/scale"]
+    verbs: ["get", "list", "update"]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rabbit-pod-autoscaler
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rabbit-pod-autoscaler
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rabbit-pod-autoscaler
+subjects:
+  - kind: ServiceAccount
+    name: rabbit-pod-autoscaler
+    namespace: kube-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbit-pod-autoscaler
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: rabbit-pod-autoscaler
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: rabbit-pod-autoscaler
+    spec:
+      nodeSelector:
+        kubernetes.io/role: agent
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/agent
+      serviceAccountName: rabbit-pod-autoscaler
+      containers:
+        - name: rabbit-pod-autoscaler
+          image: mitigaaceacr.azurecr.io/k8s-rabbit-pod-autoscaler:3315.8b10dbb
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: 100m
+              memory: 50Mi
+          env:
+            - name: INTERVAL
+              value: "30"
+            - name: RABBIT_HOST
+              value: "http://rabbit.default"
+            - name: RABBIT_USER
+              value: "mitiga"
+            - name: RABBIT_PASS
+              value: "iezahghikoo7puku4Tho"
+            - name: AUTOSCALING
+              value: >
+                0|200|1|default|farsite-worker|fire.farsite.workers|1440;
+                0|12|1|default|alert-postprocess-deployment|alertpostprocess|1440;
+                0|50|5|default|index-addition|fire.addition.workers|1440;
+                0|12|1|default|ice-worker|hazardaware.ice-worker.workers|1440;
+                0|4|1|default|asset-impacts-worker|asset-impacts-worker.requests|1440;
+            - name: LOGS
+              value: HIGH

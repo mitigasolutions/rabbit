@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbit
+  template:
+    metadata:
+      labels:
+        app: rabbit
+    spec:
+      containers:
+      - name: rabbit
+        image: rabbitmq:3-management
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: "250Mi"
+            cpu: "200m"
+          limits:
+            memory: "1250Mi"
+            cpu: "1000m"
+        ports:
+        - containerPort: 15672
+        - containerPort: 5672
+        volumeMounts:
+        - name: rabbit-config
+          mountPath: "/etc/rabbitmq/rabbitmq.conf"
+          subPath: rabbitmq.conf
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 15672
+          initialDelaySeconds: 5
+          periodSeconds: 30
+          timeoutSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 15672
+          initialDelaySeconds: 5
+          periodSeconds: 30
+          timeoutSeconds: 30
+      volumes:
+        - name: rabbit-config
+          secret:
+            secretName: rabbit-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbit
+spec:
+  selector:
+    app: rabbit
+  ports:
+  - protocol: TCP
+    port: 15672
+    name: rabbit-ui
+    targetPort: 15672
+  - protocol: TCP
+    port: 5672
+    targetPort: 5672
+    name: rabbit-communitation
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rabbit-config
+type: Opaque
+data:
+  rabbitmq.conf: bG9vcGJhY2tfdXNlcnMuZ3Vlc3QgPSBmYWxzZQp0b3RhbF9tZW1vcnlfYXZhaWxhYmxlX292ZXJyaWRlX3ZhbHVlID0gMTMxMDcyMDAwMApsaXN0ZW5lcnMudGNwLmRlZmF1bHQgPSA1NjcyCmRlZmF1bHRfcGFzcyA9IGllemFoZ2hpa29vN3B1a3U0VGhvCgpkZWZhdWx0X3VzZXIgPSBtaXRpZ2EKbWFuYWdlbWVudC50Y3AucG9ydCA9IDE1NjcyCmNvbnN1bWVyX3RpbWVvdXQgPSAyMTkwMDAwMAoK
