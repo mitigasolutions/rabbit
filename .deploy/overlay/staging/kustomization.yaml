@@ -6,5 +6,6 @@ components:
 
 resources:
 - autoscaler.yaml
+- ingress.yaml
 
 patchesStrategicMerge:
